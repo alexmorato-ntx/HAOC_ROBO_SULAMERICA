@@ -5,6 +5,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using DapperExtensions;
@@ -24,6 +25,7 @@ namespace HAOC_ROBO_SULAMERICA
 
         static void Main(string[] args)
         {
+            //Log Data/Hora > Versão do Robô
             fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Versão: " + Assembly.GetEntryAssembly().GetName().Version.ToString()));
             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Versão: " + Assembly.GetEntryAssembly().GetName().Version.ToString()));
 
@@ -58,24 +60,25 @@ namespace HAOC_ROBO_SULAMERICA
                 }
 
 
-            
+
 
                 if (fValidaA && fValidaB)
                 {
+                    //Log Data/Hora > Início de execução do ROBÔ
                     fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "INICIO ROBÔ CONSULTA DE ATENDIMENTOS."));
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "INICIO ROBÔ CONSULTA DE ATENDIMENTOS."));
 
                     ConsultaAtendimento_Robo1(dateTimeA.ToString("yyyy-MM-dd HH:mm:ss"), dateTimeB.ToString("yyyy-MM-dd HH:mm:ss")).Wait();
                     AtendimentoUri_Robo3(ListaURIs, ListaURIsErro).Wait();
 
-                     
+
                 }
                 else
                 {
                     Console.WriteLine("Parametro com datas inválidas!");
                     Console.ReadLine();
                 }
-                 
+
             }
 
 
@@ -91,6 +94,8 @@ namespace HAOC_ROBO_SULAMERICA
                 string sUrlConnection = System.Configuration.ConfigurationManager.AppSettings["sUrlConnection"];
 
                 string sTiposDocumento = System.Configuration.ConfigurationManager.AppSettings["TiposDocumento"];
+
+                string bGeraLogArquivos = System.Configuration.ConfigurationManager.AppSettings["GeraLogArquivos"];
 
                 var spltArr = sTiposDocumento.Split(';');
                 List<HelperTiposDocumentos> listaTipoAtendimentoDocumentos = new List<HelperTiposDocumentos>();
@@ -134,7 +139,7 @@ namespace HAOC_ROBO_SULAMERICA
                     retorno.objetoRetorno = lista;
                     retorno.possuiDados = true;
 
-
+                    //Log Data/Hora > Qtdade de Atendimentos encontrados
                     fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Foram encontrados " + lista.Count() + " atendimentos"));
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Foram encontrados " + lista.Count() + " atendimentos"));
 
@@ -182,12 +187,15 @@ namespace HAOC_ROBO_SULAMERICA
 
                             if (listagemDocumentos != null && listagemDocumentos.Count() > 0)
                             {
-                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Encontrou os documentos do atendimento: " + item.MedicalCareCode + ". Documentos encontrados: " + listagemDocumentos.Count()));
+                                //Log Data/Hora - Documentos encontrados referente ao atendimento
+                                // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Encontrou os documentos do atendimento: " + item.MedicalCareCode + ". Documentos encontrados: " + listagemDocumentos.Count()));
+                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Encontrou os docs do atend: " + item.MedicalCareCode + ". Docs encontrados: " + listagemDocumentos.Count()));
                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Encontrou os documentos do atendimento: " + item.MedicalCareCode + ". Documentos encontrados: " + listagemDocumentos.Count()));
 
 
-
-                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Caminho das imagens do atendimento: " + item.MedicalCareCode));
+                                //Log Data/Hora - Path dos Documentos encontrados referente ao atendimento
+                                // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Caminho das imagens do atendimento: " + item.MedicalCareCode));
+                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Path img atend: " + item.MedicalCareCode));
                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Caminho das imagens do atendimento: " + item.MedicalCareCode));
                                 //pegar as imagens para montar o PDF
 
@@ -201,7 +209,7 @@ namespace HAOC_ROBO_SULAMERICA
                                 {
                                     foreach (var itemDoc in listagemDocumentos)
                                     {
-
+                                        //Log Data/Hora - Path
                                         fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Path: " +
                                         itemDoc.URS_PATHFISICO + "\\" + itemDoc.PAS_Registro + "\\" + itemDoc.PAS_Registro + itemDoc.DIV_CODIGOREDUZIDO + "\\" + itemDoc.PAS_CODIGOPASSAGEM + "\\" + itemDoc.DOC_NOMEARQUIVO + "." + itemDoc.FMT_EXTENSAO
                                             ));
@@ -229,7 +237,7 @@ namespace HAOC_ROBO_SULAMERICA
                                 catch (Exception ex)
                                 {
                                     fGerando = false;
-                                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada montar PDF. Erro: " + ex.Message));
+                                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro ao na chamada montar PDF. Erro: " + ex.Message));
                                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar  a chamada montar PDF. Erro: " + ex.Message));
                                 }
 
@@ -237,11 +245,12 @@ namespace HAOC_ROBO_SULAMERICA
 
                                 if (fGerando)
                                 {
-                                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Gerando o arquivo PDF"));
+                                    //Log Data/Hora - Info de geração de arquivo pdf
+                                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Gerando o arq. PDF"));
                                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Gerando o arquivo PDF"));
                                     //  save to destination file
 
-                                    var nomeDocumento =  item.MedicalCareCode + "_" + DateTime.Now.ToString("ddMMyyyyHHmmss");
+                                    var nomeDocumento = item.MedicalCareCode + "_" + DateTime.Now.ToString("ddMMyyyyHHmmss");
 
                                     try
                                     {
@@ -254,7 +263,8 @@ namespace HAOC_ROBO_SULAMERICA
 
                                             ListaURIs.Add(new RequestAtendimentoURI { MedicalCareCode = item.MedicalCareCode, URI = nomeDocumento + ".pdf", MedicalCareType = item.MedicalCareType });
 
-                                            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "----------------"));
+                                            // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "----------------"));
+                                            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "----------------"));
                                             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "----------------"));
 
                                             DirectoryInfo Dir = new DirectoryInfo(pathPDFSave);
@@ -262,7 +272,13 @@ namespace HAOC_ROBO_SULAMERICA
                                             FileInfo[] Files = Dir.GetFiles("*", SearchOption.AllDirectories);
                                             foreach (FileInfo File in Files)
                                             {
-                                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Arquivo: " + File.Name));
+                                                // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Arquivo: " + File.Name));
+
+                                                if (bGeraLogArquivos == "1")
+                                                {
+                                                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Arq: " + File.Name));
+                                                }
+
                                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Arquivo: " + File.Name));
                                             }
 
@@ -272,7 +288,7 @@ namespace HAOC_ROBO_SULAMERICA
                                     catch (Exception ex)
                                     {
                                         ListaURIsErro.Add(new RequestAtendimentoURI() { URI = nomeDocumento, MedicalCareCode = item.MedicalCareCode, Error = ex.Message, MedicalCareType = item.MedicalCareType });
-                                        fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada salvar PDF. Erro: " + ex.Message));
+                                        fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro na chamada salvar PDF. Erro: " + ex.Message));
                                         Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar  a chamada salvar PDF. Erro: " + ex.Message));
                                     }
 
@@ -281,7 +297,8 @@ namespace HAOC_ROBO_SULAMERICA
                             }
                             else
                             {
-                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "NAO foi possivel encontrar os documentos da passagem: " + item.MedicalCareCode));
+                                //Log Data/Hora - Registro de falha ao encontrar documentos de passagem
+                                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "NAO foi possivel encontrar os docs da passagem: " + item.MedicalCareCode));
                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "NAO foi possivel encontrar os documentos da passagem: " + item.MedicalCareCode));
                             }
 
@@ -295,8 +312,8 @@ namespace HAOC_ROBO_SULAMERICA
                 }
                 else
                 {
-                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "content : " + response.Content));
-                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada 1 Método. Erro: " + response.Content));
+                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "content : " + response.Content));
+                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Ocorreu um erro na chamada 1 Método. Erro: " + response.Content));
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada 1 Método. Erro: " + response.Content));
 
                     return null;
@@ -306,34 +323,33 @@ namespace HAOC_ROBO_SULAMERICA
             }
             catch (Exception ex)
             {
-                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro 1 Método: " + ex.Message));
+                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Erro 1 Método: " + ex.Message));
                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro 1 Método: " + ex.Message));
                 return null;
             }
 
         }
 
-
-
         static async Task<bool> AtendimentoUri_Robo3(List<RequestAtendimentoURI> ListaURIs, List<RequestAtendimentoURI> ListaURIsErro)
         {
 
+            string bGeraLogJson = System.Configuration.ConfigurationManager.AppSettings["GeraLogJson"];
+
             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Iniciando 3 Método. "));
-            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Iniciando 3 Método."));
-
-
-
-
+            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Início 3 Método."));
 
             var ksd = JsonConvert.SerializeObject(ListaURIs);
-            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "json: " + ksd));
+            if (bGeraLogJson == "1")
+            {
+                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "json: " + ksd));
+            }
+
             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "json: " + ksd));
 
-
-			var ksd_erro = JsonConvert.SerializeObject(ListaURIsErro);
-			fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "json listagem com erros: " + ksd_erro));
-			Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "json listagem com erros: " + ksd));
-			try
+            var ksd_erro = JsonConvert.SerializeObject(ListaURIsErro);
+            fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "json lista com erros: " + ksd_erro));
+            Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "json listagem com erros: " + ksd));
+            try
             {
                 WebServices services = new WebServices();
 
@@ -342,12 +358,12 @@ namespace HAOC_ROBO_SULAMERICA
                 IRestResponse response = await services.PostObjectAtendimentoURIRestAsync<List<RequestAtendimentoURI>>("/tiss", ListaURIs);
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Método 3 realizado com sucesso: " + response.Content));
+                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Método 3 realizado com sucesso: " + response.Content));
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Método 3 realizado com sucesso: " + response.Content));
                 }
                 else
                 {
-                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada 3 Método. Erro: " + response.Content));
+                    fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro na chamada 3 Método. Erro: " + response.Content));
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar a chamada 3 Método. Erro: " + response.Content));
                 }
 
@@ -356,7 +372,7 @@ namespace HAOC_ROBO_SULAMERICA
             catch (Exception ex)
             {
 
-                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro 3 Método: " + ex.Message));
+                fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Erro 3 Método: " + ex.Message));
                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro 3 Método: " + ex.Message));
                 return false;
             }
