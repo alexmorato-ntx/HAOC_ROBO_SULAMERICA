@@ -5,7 +5,6 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using DapperExtensions;
@@ -25,21 +24,53 @@ namespace HAOC_ROBO_SULAMERICA
 
         static void Main(string[] args)
         {
+            // Verifica o limite de tentativas do processo.
+            int Tentativa = 0;
+            int TentativaMax = int.Parse(System.Configuration.ConfigurationManager.AppSettings["ReprocessaErros"]) + 1;
+
+            // Realiza o processo inicial.
+            ProcessamentoPrincipal(args);
+
+            // Valida a necessidade de um reprocesso.
+            if (ListaURIsErro.Count() > 0)
+            {
+                while(Tentativa < TentativaMax)
+                {
+                    // Valida a necessidade de um reprocesso para o Loop.
+                    if (ListaURIsErro.Count() > 0)
+                    {
+                        // Limpa as listas.
+                        ListaURIs.Clear();
+                        ListaURIsErro.Clear();
+
+                        // Realiza o processo pricipal novamente.
+                        ProcessamentoPrincipal(args);
+                        Tentativa++;
+                    }
+                    else
+                    {
+                        // Encerra o Loop.
+                        Tentativa = TentativaMax;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Basicamente o metodo Main Original alterado pra uma função, apenas para deixar o codigo mais simples de ler.
+        static void ProcessamentoPrincipal(string[] args)
+        {
             //Log Data/Hora > Versão do Robô
             fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Versão: " + Assembly.GetEntryAssembly().GetName().Version.ToString()));
             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Versão: " + Assembly.GetEntryAssembly().GetName().Version.ToString()));
 
-
             if (args == null || args.Length < 2)
             {
-
                 Console.WriteLine("É necessário passar dois parametros de datas, no formato (yyyy-MM-dd HH:mm)!");
                 Console.ReadLine();
-
             }
             else
             {
-
                 string inputA = args[0];
                 DateTime dateTimeA;
                 bool fValidaA = false;
@@ -48,7 +79,6 @@ namespace HAOC_ROBO_SULAMERICA
                     fValidaA = true;
                     Console.WriteLine(dateTimeA);
                 }
-
 
                 string inputB = args[1];
                 DateTime dateTimeB;
@@ -59,9 +89,6 @@ namespace HAOC_ROBO_SULAMERICA
                     Console.WriteLine(dateTimeB);
                 }
 
-
-
-
                 if (fValidaA && fValidaB)
                 {
                     //Log Data/Hora > Início de execução do ROBÔ
@@ -70,23 +97,18 @@ namespace HAOC_ROBO_SULAMERICA
 
                     ConsultaAtendimento_Robo1(dateTimeA.ToString("yyyy-MM-dd HH:mm:ss"), dateTimeB.ToString("yyyy-MM-dd HH:mm:ss")).Wait();
                     AtendimentoUri_Robo3(ListaURIs, ListaURIsErro).Wait();
-
-
                 }
                 else
                 {
                     Console.WriteLine("Parametro com datas inválidas!");
                     Console.ReadLine();
                 }
-
             }
-
-
         }
+
 
         static async Task<IEnumerable<ResponseAtendimento>> ConsultaAtendimento_Robo1(string dtInicio, string dtFim)
         {
-
             try
             {
                 string pathPDFSave = System.Configuration.ConfigurationManager.AppSettings["pathPDFSave"];
@@ -103,7 +125,6 @@ namespace HAOC_ROBO_SULAMERICA
                 {
                     foreach (var item in spltArr)
                     {
-
                         var spltItem = item.Split(':');
 
                         HelperTiposDocumentos obj = new HelperTiposDocumentos()
@@ -112,14 +133,9 @@ namespace HAOC_ROBO_SULAMERICA
                             TipoAtendimento = spltItem[1],
                             TipoDocumento = spltItem[2]
                         };
-
                         listaTipoAtendimentoDocumentos.Add(obj);
                     }
                 }
-
-
-
-
 
 
                 WebServices services;
@@ -129,7 +145,6 @@ namespace HAOC_ROBO_SULAMERICA
                 IRestResponse response = await services.PostFormDataAtendimentoRestAsync<IEnumerable<ResponseAtendimento>>("/atendimento.php", dtInicio, dtFim);
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-
                     Console.WriteLine(response.Content);
 
                     lista = JsonConvert.DeserializeObject<IEnumerable<ResponseAtendimento>>(response.Content);
@@ -144,22 +159,15 @@ namespace HAOC_ROBO_SULAMERICA
                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Foram encontrados " + lista.Count() + " atendimentos"));
 
 
-
-
-
                     using (var dbConn = new OracleConnection(sUrlConnection))
                     {
-
                         dbConn.Open();
-
-
 
                         foreach (var item in lista)
                         {
                             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "MedicalCareName: " + item.MedicalCareName));
                             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "MedicalCareName: " + item.MedicalCareCode));
                             //Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "MedicalCareName: " + item.DeliveryDate));
-
 
                             var strQuery = @"select U.URS_PATHFISICO ,  P.PAS_Registro , DD.DIV_CODIGOREDUZIDO   , P.PAS_CODIGOPASSAGEM , D.DOC_NOMEARQUIVO , F.FMT_EXTENSAO from GEDPassagens P
                                              inner join GEDDOCUMENTOS D on D.DOC_IDPASSAGEM = P.PAS_IDPASSAGEM
@@ -183,8 +191,6 @@ namespace HAOC_ROBO_SULAMERICA
 
                             var listagemDocumentos = dbConn.Query<HelperUrl>(strQuery, new { PASSAGEM = item.MedicalCareCode }).AsEnumerable();
 
-
-
                             if (listagemDocumentos != null && listagemDocumentos.Count() > 0)
                             {
                                 //Log Data/Hora - Documentos encontrados referente ao atendimento
@@ -192,13 +198,11 @@ namespace HAOC_ROBO_SULAMERICA
                                 fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Encontrou os docs do atend: " + item.MedicalCareCode + ". Docs encontrados: " + listagemDocumentos.Count()));
                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Encontrou os documentos do atendimento: " + item.MedicalCareCode + ". Documentos encontrados: " + listagemDocumentos.Count()));
 
-
                                 //Log Data/Hora - Path dos Documentos encontrados referente ao atendimento
                                 // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Caminho das imagens do atendimento: " + item.MedicalCareCode));
                                 fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Path img atend: " + item.MedicalCareCode));
                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Caminho das imagens do atendimento: " + item.MedicalCareCode));
                                 //pegar as imagens para montar o PDF
-
 
 
                                 PdfDocument doc = new PdfDocument();
@@ -213,14 +217,11 @@ namespace HAOC_ROBO_SULAMERICA
                                         fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Path: " +
                                         itemDoc.URS_PATHFISICO + "\\" + itemDoc.PAS_Registro + "\\" + itemDoc.PAS_Registro + itemDoc.DIV_CODIGOREDUZIDO + "\\" + itemDoc.PAS_CODIGOPASSAGEM + "\\" + itemDoc.DOC_NOMEARQUIVO + "." + itemDoc.FMT_EXTENSAO
                                             ));
-
                                         Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Path: " +
                                         itemDoc.URS_PATHFISICO + "\\" + itemDoc.PAS_Registro + "\\" + itemDoc.PAS_Registro + itemDoc.DIV_CODIGOREDUZIDO + "\\" + itemDoc.PAS_CODIGOPASSAGEM + "\\" + itemDoc.DOC_NOMEARQUIVO + "." + itemDoc.FMT_EXTENSAO
                                             ));
 
-
                                         var scaminho = itemDoc.URS_PATHFISICO + "\\" + itemDoc.PAS_Registro + "\\" + itemDoc.PAS_Registro + itemDoc.DIV_CODIGOREDUZIDO + "\\" + itemDoc.PAS_CODIGOPASSAGEM + "\\" + itemDoc.DOC_NOMEARQUIVO + "." + itemDoc.FMT_EXTENSAO;
-
 
                                         // each source on separate page
                                         doc.Pages.Add(new PdfPage());
@@ -241,25 +242,20 @@ namespace HAOC_ROBO_SULAMERICA
                                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Ocorreu um erro ao realizar  a chamada montar PDF. Erro: " + ex.Message));
                                 }
 
-
-
                                 if (fGerando)
                                 {
                                     //Log Data/Hora - Info de geração de arquivo pdf
                                     fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Gerando o arq. PDF"));
                                     Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Gerando o arquivo PDF"));
                                     //  save to destination file
-
                                     var nomeDocumento = item.MedicalCareCode + "_" + DateTime.Now.ToString("ddMMyyyyHHmmss");
 
                                     try
                                     {
                                         using (var nsa = NetworkShareAccesser.Access(pathPDFSave, "HAOC", "gedcaptura", "Captura@123"))
                                         {
-
                                             doc.Save(pathPDFSave + @"\" + nomeDocumento + ".pdf");
                                             doc.Close();
-
 
                                             ListaURIs.Add(new RequestAtendimentoURI { MedicalCareCode = item.MedicalCareCode, URI = nomeDocumento + ".pdf", MedicalCareType = item.MedicalCareType });
 
@@ -273,17 +269,13 @@ namespace HAOC_ROBO_SULAMERICA
                                             foreach (FileInfo File in Files)
                                             {
                                                 // ORIGINAL - fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Arquivo: " + File.Name));
-
                                                 if (bGeraLogArquivos == "1")
                                                 {
                                                     fileCreator.WriteTxtLog(String.Format("[{0}] - {1}", DateTime.Now.ToString("ddMMyyyy HH:mm"), "Arq: " + File.Name));
                                                 }
-
                                                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Arquivo: " + File.Name));
                                             }
-
                                         }
-
                                     }
                                     catch (Exception ex)
                                     {
@@ -332,7 +324,6 @@ namespace HAOC_ROBO_SULAMERICA
 
         static async Task<bool> AtendimentoUri_Robo3(List<RequestAtendimentoURI> ListaURIs, List<RequestAtendimentoURI> ListaURIsErro)
         {
-
             string bGeraLogJson = System.Configuration.ConfigurationManager.AppSettings["GeraLogJson"];
 
             Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Iniciando 3 Método. "));
@@ -352,9 +343,7 @@ namespace HAOC_ROBO_SULAMERICA
             try
             {
                 WebServices services = new WebServices();
-
-
-
+                //Realiza as request da ListaURIs
                 IRestResponse response = await services.PostObjectAtendimentoURIRestAsync<List<RequestAtendimentoURI>>("/tiss", ListaURIs);
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
@@ -376,9 +365,6 @@ namespace HAOC_ROBO_SULAMERICA
                 Console.WriteLine(String.Format("[{0}] - {1}", DateTime.Now.ToString("dd/MM/yyyy 'às' HH:mm"), "Erro 3 Método: " + ex.Message));
                 return false;
             }
-
-
-
         }
     }
 
